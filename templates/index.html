@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task2 — Document Q&amp;A</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="stamp">TASK2</div>
+    <div class="masthead-text">
+      <h1>Document Q&amp;A Desk</h1>
+      <p class="subtitle">Upload a file. Ask it anything. Get answers grounded in its pages.</p>
+    </div>
+  </header>
+
+  <main class="desk">
+
+    <section class="panel intake" aria-labelledby="intake-heading">
+      <h2 id="intake-heading"><span class="tab-number">01</span> Intake</h2>
+
+      <form id="upload-form">
+        <label for="file-input" class="dropzone" id="dropzone">
+          <span class="dropzone-title">Drop a document here</span>
+          <span class="dropzone-sub">or click to browse &middot; PDF, DOCX, TXT</span>
+          <input type="file" id="file-input" name="file" accept=".pdf,.docx,.txt" hidden>
+        </label>
+        <button type="submit" class="btn-primary" id="upload-btn">Index document</button>
+      </form>
+
+      <div id="upload-status" class="status" role="status"></div>
+
+      <div id="doc-record" class="doc-record hidden">
+        <div class="doc-record-row"><span>File</span><strong id="doc-filename">—</strong></div>
+        <div class="doc-record-row"><span>Chunks indexed</span><strong id="doc-chunks">—</strong></div>
+      </div>
+    </section>
+
+    <section class="panel inquiry" aria-labelledby="inquiry-heading">
+      <h2 id="inquiry-heading"><span class="tab-number">02</span> Inquiry</h2>
+
+      <div id="chat-log" class="chat-log">
+        <p class="empty-note">Answers will appear here once a document is indexed.</p>
+      </div>
+
+      <form id="ask-form">
+        <textarea id="question-input" placeholder="Ask something about the uploaded document…" rows="2" disabled></textarea>
+        <button type="submit" class="btn-primary" id="ask-btn" disabled>Ask</button>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="ledger">
+    <span>Model: openai/gpt-oss-20b via Hugging Face Inference API</span>
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

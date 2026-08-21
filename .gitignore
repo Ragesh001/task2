@@ -1,0 +1,14 @@
+# Environment variables - never commit this
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Uploads
+uploads/
+
+# Virtual environment
+venv/
+.venv/
