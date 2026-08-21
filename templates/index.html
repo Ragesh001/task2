@@ -1,61 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Task2 — Document Q&amp;A</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document AI — Smart Q&amp;A</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-  <header class="masthead">
-    <div class="stamp">TASK2</div>
-    <div class="masthead-text">
-      <h1>Document Q&amp;A Desk</h1>
-      <p class="subtitle">Upload a file. Ask it anything. Get answers grounded in its pages.</p>
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-title">DocuQuery</span>
+          <span class="brand-badge">AI Assistant</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <div id="model-status" class="status-pill loading">
+          <span class="status-dot"></span>
+          <span class="status-text">Connecting...</span>
+        </div>
+      </div>
     </div>
   </header>
 
-  <main class="desk">
+  <!-- Main Container -->
+  <main class="app-layout">
 
-    <section class="panel intake" aria-labelledby="intake-heading">
-      <h2 id="intake-heading"><span class="tab-number">01</span> Intake</h2>
+    <!-- Left Sidebar: Document Management -->
+    <aside class="sidebar-panel">
+      <div class="card panel-upload">
+        <div class="card-header">
+          <h2>Document Upload</h2>
+          <p>Upload a file to start asking questions</p>
+        </div>
 
-      <form id="upload-form">
-        <label for="file-input" class="dropzone" id="dropzone">
-          <span class="dropzone-title">Drop a document here</span>
-          <span class="dropzone-sub">or click to browse &middot; PDF, DOCX, TXT</span>
-          <input type="file" id="file-input" name="file" accept=".pdf,.docx,.txt" hidden>
-        </label>
-        <button type="submit" class="btn-primary" id="upload-btn">Index document</button>
-      </form>
+        <form id="upload-form">
+          <label for="file-input" class="dropzone" id="dropzone">
+            <div class="dropzone-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <span class="dropzone-title">Choose a file or drag here</span>
+            <span class="dropzone-sub">Supports PDF, DOCX, TXT (up to 25MB)</span>
+            <input type="file" id="file-input" name="file" accept=".pdf,.docx,.txt" hidden>
+          </label>
 
-      <div id="upload-status" class="status" role="status"></div>
+          <button type="submit" class="btn-primary" id="upload-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Index Document</span>
+          </button>
+        </form>
 
-      <div id="doc-record" class="doc-record hidden">
-        <div class="doc-record-row"><span>File</span><strong id="doc-filename">—</strong></div>
-        <div class="doc-record-row"><span>Chunks indexed</span><strong id="doc-chunks">—</strong></div>
+        <div id="upload-status" class="status-banner" role="status"></div>
+
+        <!-- Document metadata details -->
+        <div id="doc-record" class="doc-record hidden">
+          <div class="doc-record-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <span>Active Document</span>
+          </div>
+          <div class="doc-record-row">
+            <span class="label">File</span>
+            <strong class="value" id="doc-filename">—</strong>
+          </div>
+          <div class="doc-record-row">
+            <span class="label">Indexed Chunks</span>
+            <strong class="value badge-count" id="doc-chunks">—</strong>
+          </div>
+        </div>
       </div>
-    </section>
+    </aside>
 
-    <section class="panel inquiry" aria-labelledby="inquiry-heading">
-      <h2 id="inquiry-heading"><span class="tab-number">02</span> Inquiry</h2>
+    <!-- Right Workspace: Chat / Q&A -->
+    <section class="main-panel">
+      <div class="card chat-card">
+        <div class="chat-card-header">
+          <div>
+            <h2>Document Conversation</h2>
+            <p>Ask precise questions grounded in your document's contents</p>
+          </div>
+        </div>
 
-      <div id="chat-log" class="chat-log">
-        <p class="empty-note">Answers will appear here once a document is indexed.</p>
+        <!-- Chat Stream -->
+        <div id="chat-log" class="chat-log">
+          <div class="empty-state">
+            <div class="empty-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </div>
+            <h3>Ready to analyze</h3>
+            <p>Upload a document on the left to start asking questions.</p>
+          </div>
+        </div>
+
+        <!-- Inquiry Form -->
+        <form id="ask-form" class="ask-form">
+          <div class="input-wrapper">
+            <textarea id="question-input" placeholder="Type your question about the document..." rows="1" disabled></textarea>
+            <button type="submit" class="btn-send" id="ask-btn" disabled title="Send question">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+        </form>
       </div>
-
-      <form id="ask-form">
-        <textarea id="question-input" placeholder="Ask something about the uploaded document…" rows="2" disabled></textarea>
-        <button type="submit" class="btn-primary" id="ask-btn" disabled>Ask</button>
-      </form>
     </section>
 
   </main>
-
-  <footer class="ledger">
-    <span>Model: openai/gpt-oss-20b via Hugging Face Inference API</span>
-  </footer>
 
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>

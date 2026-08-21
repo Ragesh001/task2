@@ -12,16 +12,13 @@ const askForm = document.getElementById("ask-form");
 const questionInput = document.getElementById("question-input");
 const askBtn = document.getElementById("ask-btn");
 const chatLog = document.getElementById("chat-log");
+const modelStatusEl = document.getElementById("model-status");
+const modelStatusText = modelStatusEl ? modelStatusEl.querySelector(".status-text") : null;
 
 let currentDocId = null;
 let modelReady = false;
 
-// --- Model status polling ---------------------------------------------
-const modelStatusEl = document.createElement("div");
-modelStatusEl.id = "model-status";
-modelStatusEl.className = "model-status";
-document.querySelector(".ledger").prepend(modelStatusEl);
-
+// --- Model Status Polling ---------------------------------------------
 async function pollModelStatus() {
   try {
     const res = await fetch("/model-status");
@@ -29,62 +26,75 @@ async function pollModelStatus() {
 
     if (data.status === "ready") {
       modelReady = true;
-      modelStatusEl.textContent = "● Model ready";
-      modelStatusEl.className = "model-status ready";
-      return; // stop polling
+      if (modelStatusEl) {
+        modelStatusEl.className = "status-pill ready";
+        if (modelStatusText) modelStatusText.textContent = "AI Ready";
+      }
+      return;
     }
+
     if (data.status === "error") {
-      modelStatusEl.textContent = "● Model failed to load — check server terminal: " + (data.error || "");
-      modelStatusEl.className = "model-status error";
-      return; // stop polling, nothing more to wait for
+      if (modelStatusEl) {
+        modelStatusEl.className = "status-pill error";
+        if (modelStatusText) modelStatusText.textContent = "API Error";
+      }
+      return;
     }
-    if (data.status === "loading") {
-      modelStatusEl.textContent = "● Connecting to Hugging Face Inference API…";
-      modelStatusEl.className = "model-status loading";
-    } else {
-      modelStatusEl.textContent = "● Initializing model client…";
-      modelStatusEl.className = "model-status loading";
+
+    if (modelStatusEl) {
+      modelStatusEl.className = "status-pill loading";
+      if (modelStatusText) modelStatusText.textContent = "Connecting...";
     }
-    setTimeout(pollModelStatus, 4000);
+    setTimeout(pollModelStatus, 3000);
   } catch (err) {
-    modelStatusEl.textContent = "● Could not reach server to check model status";
-    modelStatusEl.className = "model-status error";
+    if (modelStatusEl) {
+      modelStatusEl.className = "status-pill error";
+      if (modelStatusText) modelStatusText.textContent = "Offline";
+    }
     setTimeout(pollModelStatus, 5000);
   }
 }
+
 pollModelStatus();
 
-// --- Drag & drop niceties -------------------------------------------------
+// --- Drag & Drop ------------------------------------------------------
 ["dragenter", "dragover"].forEach(evt =>
   dropzone.addEventListener(evt, e => {
     e.preventDefault();
     dropzone.classList.add("dragover");
   })
 );
+
 ["dragleave", "drop"].forEach(evt =>
   dropzone.addEventListener(evt, e => {
     e.preventDefault();
     dropzone.classList.remove("dragover");
   })
 );
+
 dropzone.addEventListener("drop", e => {
   if (e.dataTransfer.files.length) {
     fileInput.files = e.dataTransfer.files;
     updateDropzoneLabel();
   }
 });
+
 fileInput.addEventListener("change", updateDropzoneLabel);
 
 function updateDropzoneLabel() {
   const title = dropzone.querySelector(".dropzone-title");
-  title.textContent = fileInput.files.length ? fileInput.files[0].name : "Drop a document here";
+  if (fileInput.files.length) {
+    title.textContent = fileInput.files[0].name;
+  } else {
+    title.textContent = "Choose a file or drag here";
+  }
 }
 
-// --- Upload ----------------------------------------------------------------
+// --- Upload Document --------------------------------------------------
 uploadForm.addEventListener("submit", async e => {
   e.preventDefault();
   if (!fileInput.files.length) {
-    setStatus("Choose a file first.", "error");
+    setStatus("Please select a document first.", "error");
     return;
   }
 
@@ -92,7 +102,7 @@ uploadForm.addEventListener("submit", async e => {
   formData.append("file", fileInput.files[0]);
 
   uploadBtn.disabled = true;
-  setStatus("Indexing document…", "");
+  setStatus("Extracting text and indexing chunks...", "");
 
   try {
     const res = await fetch("/upload", { method: "POST", body: formData });
@@ -108,9 +118,12 @@ uploadForm.addEventListener("submit", async e => {
     docChunks.textContent = data.chunks_indexed;
     docRecord.classList.remove("hidden");
 
-    setStatus("Document indexed. You can ask questions now.", "ok");
+    setStatus("Document indexed! You can ask questions below.", "ok");
     questionInput.disabled = false;
     askBtn.disabled = false;
+    questionInput.focus();
+
+    // Clear empty state
     chatLog.innerHTML = "";
   } catch (err) {
     setStatus("Network error while uploading.", "error");
@@ -120,18 +133,33 @@ uploadForm.addEventListener("submit", async e => {
 });
 
 function setStatus(message, kind) {
+  if (!message) {
+    uploadStatus.textContent = "";
+    uploadStatus.className = "status-banner";
+    return;
+  }
   uploadStatus.textContent = message;
-  uploadStatus.className = "status" + (kind ? " " + kind : "");
+  uploadStatus.className = "status-banner visible " + (kind || "");
 }
 
-// --- Ask ---------------------------------------------------------------
+// --- Ask Question -----------------------------------------------------
+// Allow pressing Enter to submit (Shift+Enter for newline)
+questionInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    if (!askBtn.disabled) {
+      askForm.requestSubmit();
+    }
+  }
+});
+
 askForm.addEventListener("submit", async e => {
   e.preventDefault();
   const question = questionInput.value.trim();
   if (!question || !currentDocId) return;
 
   if (!modelReady) {
-    addBubble("The model isn't ready yet — see the status line at the bottom of the page, or check the server terminal.", "answer error");
+    addBubble("The AI model is still initializing. Please wait a moment.", "answer error");
     return;
   }
 
@@ -139,7 +167,7 @@ askForm.addEventListener("submit", async e => {
   questionInput.value = "";
   askBtn.disabled = true;
 
-  const pending = addBubble("Thinking…", "answer pending");
+  const pending = addBubble("Thinking...", "answer pending");
 
   try {
     const res = await fetch("/ask", {
@@ -150,16 +178,20 @@ askForm.addEventListener("submit", async e => {
     const data = await res.json();
 
     if (!res.ok) {
-      pending.textContent = data.error || "Something went wrong.";
+      pending.textContent = data.error || "Failed to generate answer.";
+      pending.classList.remove("pending");
       pending.classList.add("error");
     } else {
       pending.textContent = data.answer;
       pending.classList.remove("pending");
     }
   } catch (err) {
-    pending.textContent = "Network error while asking the model.";
+    pending.textContent = "Network connection issue while communicating with server.";
+    pending.classList.remove("pending");
+    pending.classList.add("error");
   } finally {
     askBtn.disabled = false;
+    questionInput.focus();
   }
 });
 
