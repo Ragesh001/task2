@@ -16,7 +16,6 @@ Run with:  python app.py
 """
 
 import os
-import threading
 import uuid
 
 from dotenv import load_dotenv
@@ -29,13 +28,20 @@ from document_reader import is_supported, extract_text, chunk_text
 from retriever import get_relevant_chunks
 from ai_engine import AIEngine
 
+import tempfile
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+# Use system temp directory for uploads so it works across local and read-only serverless filesystems (e.g. Vercel)
+UPLOAD_FOLDER = os.path.join(tempfile.gettempdir(), "task2_uploads")
 MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25 MB per upload
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static"),
+)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
@@ -44,15 +50,8 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 DOCUMENT_STORE = {}
 
 
-def _load_model_in_background():
-    """
-    Initialize the Hugging Face Inference API client as soon as the server
-    starts. This is fast (no model download) but kept in a thread/status
-    pattern for consistency and so the browser can check /model-status
-    before letting you ask questions.
-    """
-    thread = threading.Thread(target=AIEngine.start_loading, daemon=True)
-    thread.start()
+# Eagerly initialize the Inference client (lightweight, no thread needed)
+AIEngine.start_loading()
 
 
 @app.route("/")
@@ -98,6 +97,8 @@ def upload_document():
 
 @app.route("/model-status", methods=["GET"])
 def model_status():
+    if AIEngine.status == "not_started":
+        AIEngine.start_loading()
     return jsonify({
         "status": AIEngine.status,
         "error": AIEngine.error_message,
@@ -154,11 +155,4 @@ def list_documents():
 
 
 if __name__ == "__main__":
-    # Start loading the (large) model in the background as soon as the
-    # server boots, rather than lazily on the first question.
-    _load_model_in_background()
-
-    # host=0.0.0.0 so it's reachable if you're running this on a remote GPU box.
-    # debug/reloader is off on purpose: Flask's auto-reloader spawns a second
-    # process, which would trigger loading the 20B model twice.
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
