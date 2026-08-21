@@ -441,6 +441,7 @@ body {
   border: 1px solid var(--border);
   color: var(--text-main);
   border-bottom-left-radius: 4px;
+  max-width: 92%;
 }
 
 .bubble.answer.pending {
@@ -454,6 +455,98 @@ body {
   border-color: rgba(239, 68, 68, 0.4);
   background: var(--error-bg);
   color: #fca5a5;
+}
+
+/* ── Markdown rendered inside answer bubbles ── */
+.bubble.answer p {
+  margin: 0 0 10px;
+}
+.bubble.answer p:last-child {
+  margin-bottom: 0;
+}
+
+.bubble.answer h1,
+.bubble.answer h2,
+.bubble.answer h3 {
+  font-weight: 700;
+  margin: 14px 0 6px;
+  color: #c7d2fe;
+  line-height: 1.3;
+}
+.bubble.answer h1 { font-size: 1.1rem; }
+.bubble.answer h2 { font-size: 1rem; }
+.bubble.answer h3 { font-size: 0.95rem; }
+
+.bubble.answer ul,
+.bubble.answer ol {
+  padding-left: 22px;
+  margin: 6px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bubble.answer ul li {
+  list-style: disc;
+}
+
+.bubble.answer ol li {
+  list-style: decimal;
+}
+
+.bubble.answer li {
+  line-height: 1.55;
+  color: var(--text-main);
+}
+
+.bubble.answer strong,
+.bubble.answer b {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.bubble.answer em,
+.bubble.answer i {
+  font-style: italic;
+  color: #cbd5e1;
+}
+
+.bubble.answer code {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+}
+
+.bubble.answer pre {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 10px 0;
+  overflow-x: auto;
+}
+
+.bubble.answer pre code {
+  background: none;
+  padding: 0;
+  color: #a5b4fc;
+}
+
+.bubble.answer hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 12px 0;
+}
+
+.bubble.answer blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 12px;
+  color: var(--text-muted);
+  margin: 8px 0;
+  font-style: italic;
 }
 
 /* Chat Input Bar */

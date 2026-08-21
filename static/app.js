@@ -187,7 +187,7 @@ askForm.addEventListener("submit", async e => {
       pending.classList.remove("pending");
       pending.classList.add("error");
     } else {
-      pending.textContent = data.answer;
+      pending.innerHTML = renderMarkdown(data.answer);
       pending.classList.remove("pending");
     }
   } catch (err) {
@@ -200,10 +200,78 @@ askForm.addEventListener("submit", async e => {
   }
 });
 
+// ── Lightweight Markdown → HTML renderer ───────────────────────────────────
+function renderMarkdown(text) {
+  // Escape HTML first to prevent XSS
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Fenced code blocks  ```...```
+  html = html.replace(/```([\s\S]*?)```/g, (_, code) =>
+    `<pre><code>${code.trim()}</code></pre>`);
+
+  // Headings  ### ## #
+  html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+  html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+  html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+
+  // Horizontal rule
+  html = html.replace(/^---+$/gm, "<hr>");
+
+  // Blockquote
+  html = html.replace(/^&gt; (.+)$/gm, "<blockquote>$1</blockquote>");
+
+  // Bold **text** or __text__
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/__(.+?)__/g, "<strong>$1</strong>");
+
+  // Italic *text* or _text_
+  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  html = html.replace(/_(.+?)_/g, "<em>$1</em>");
+
+  // Inline code `code`
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  // Numbered list  1. item
+  html = html.replace(/^(\d+\. .+(?:\n(?!\d+\. |[-*] |#|```|---)[^\n]*)*)/gm, (block) => {
+    const items = block.split(/\n(?=\d+\. )/);
+    const lis = items.map(item => `<li>${item.replace(/^\d+\. /, "")}</li>`).join("");
+    return `<ol>${lis}</ol>`;
+  });
+
+  // Unordered list  - item  or  * item
+  html = html.replace(/^([-*] .+(?:\n(?!\d+\. |[-*] |#|```|---)[^\n]*)*)/gm, (block) => {
+    const items = block.split(/\n(?=[-*] )/);
+    const lis = items.map(item => `<li>${item.replace(/^[-*] /, "")}</li>`).join("");
+    return `<ul>${lis}</ul>`;
+  });
+
+  // Paragraphs — wrap lines not already in block tags
+  html = html
+    .split(/\n{2,}/)
+    .map(para => {
+      para = para.trim();
+      if (!para) return "";
+      if (/^<(h[1-3]|ul|ol|pre|hr|blockquote)/.test(para)) return para;
+      return `<p>${para.replace(/\n/g, "<br>")}</p>`;
+    })
+    .join("\n");
+
+  return html;
+}
+
 function addBubble(text, cls) {
   const el = document.createElement("div");
   el.className = "bubble " + cls;
-  el.textContent = text;
+
+  if (cls.includes("answer") && !cls.includes("pending") && !cls.includes("error")) {
+    el.innerHTML = renderMarkdown(text);
+  } else {
+    el.textContent = text;
+  }
+
   chatLog.appendChild(el);
   chatLog.scrollTop = chatLog.scrollHeight;
   return el;
