@@ -131,8 +131,21 @@ def ask_question():
         }), 500
 
     chunks = DOCUMENT_STORE[doc_id]["chunks"]
+    print(f"[app] /ask doc_id={doc_id!r} chunks={len(chunks)} question={question!r}", flush=True)
+
+    if not chunks:
+        return jsonify({"error": "Document has no indexed chunks. Please re-upload the file."}), 400
+
     relevant_chunks = get_relevant_chunks(chunks, question, top_k=3)
+
+    # Fall back to the first 3 chunks if TF-IDF returns nothing
+    if not relevant_chunks:
+        relevant_chunks = chunks[:3]
+
     context = "\n\n---\n\n".join(relevant_chunks)
+
+    if not context.strip():
+        return jsonify({"error": "Could not extract relevant content from the document."}), 400
 
     try:
         answer = AIEngine.answer_question(context, question)

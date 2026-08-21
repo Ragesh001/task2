@@ -101,6 +101,10 @@ uploadForm.addEventListener("submit", async e => {
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
 
+  // Reset state before upload so stale doc_id is never used
+  currentDocId = null;
+  askBtn.disabled = true;
+  questionInput.disabled = true;
   uploadBtn.disabled = true;
   setStatus("Extracting text and indexing chunks...", "");
 
@@ -113,7 +117,7 @@ uploadForm.addEventListener("submit", async e => {
       return;
     }
 
-    currentDocId = data.doc_id;
+    currentDocId = data.doc_id;          // Set AFTER successful response
     docFilename.textContent = data.filename;
     docChunks.textContent = data.chunks_indexed;
     docRecord.classList.remove("hidden");
@@ -121,9 +125,10 @@ uploadForm.addEventListener("submit", async e => {
     setStatus("Document indexed! You can ask questions below.", "ok");
     questionInput.disabled = false;
     askBtn.disabled = false;
+    questionInput.value = "";
     questionInput.focus();
 
-    // Clear empty state
+    // Clear chat log for fresh session
     chatLog.innerHTML = "";
   } catch (err) {
     setStatus("Network error while uploading.", "error");
