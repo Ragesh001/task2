@@ -138,17 +138,20 @@ def ask_question():
 
     relevant_chunks = get_relevant_chunks(chunks, question, top_k=5)
 
-    # Fall back to the first 3 chunks if TF-IDF returns nothing
+    # Fall back to the first 5 chunks if TF-IDF returns nothing
     if not relevant_chunks:
-        relevant_chunks = chunks[:3]
+        relevant_chunks = chunks[:5]
 
     context = "\n\n---\n\n".join(relevant_chunks)
 
     if not context.strip():
         return jsonify({"error": "Could not extract relevant content from the document."}), 400
 
+    # Use a larger token budget for broad/global queries (more chunks = longer response needed)
+    max_tokens = 800 if len(relevant_chunks) >= 5 else 400
+
     try:
-        answer = AIEngine.answer_question(context, question)
+        answer = AIEngine.answer_question(context, question, max_new_tokens=max_tokens)
     except Exception as exc:  # noqa: BLE001
         print(f"[app] /ask inference error: {exc}")
         return jsonify({"error": f"Model inference failed: {exc}"}), 500
