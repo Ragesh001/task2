@@ -136,7 +136,7 @@ def ask_question():
     if not chunks:
         return jsonify({"error": "Document has no indexed chunks. Please re-upload the file."}), 400
 
-    relevant_chunks = get_relevant_chunks(chunks, question, top_k=3)
+    relevant_chunks = get_relevant_chunks(chunks, question, top_k=5)
 
     # Fall back to the first 3 chunks if TF-IDF returns nothing
     if not relevant_chunks:
@@ -165,6 +165,23 @@ def list_documents():
         {"doc_id": doc_id, "filename": meta["filename"], "chunks": len(meta["chunks"])}
         for doc_id, meta in DOCUMENT_STORE.items()
     ])
+
+
+@app.route("/debug/<doc_id>", methods=["GET"])
+def debug_document(doc_id):
+    """Diagnostic endpoint — shows the raw extracted chunks for a document."""
+    if doc_id not in DOCUMENT_STORE:
+        return jsonify({"error": "Unknown doc_id"}), 404
+    meta = DOCUMENT_STORE[doc_id]
+    chunks = meta["chunks"]
+    total_chars = sum(len(c) for c in chunks)
+    return jsonify({
+        "filename": meta["filename"],
+        "total_chunks": len(chunks),
+        "total_chars": total_chars,
+        "preview": chunks[:3],          # first 3 chunks
+        "all_chunks": chunks,
+    })
 
 
 if __name__ == "__main__":
